@@ -3,6 +3,8 @@
 [ext_resource type="Texture2D" path="res://assets/kenney_micro-roguelike/Tiles/Colored/tile_0020.png" id="1_tile"]
 
 [node name="SnakeTile" type="Sprite2D"]
+centered = false
 texture_filter = 1
 texture_repeat = 1
+modulate = Color(0.35, 1, 0.55, 1)
 texture = ExtResource("1_tile")

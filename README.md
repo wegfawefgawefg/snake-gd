@@ -18,3 +18,7 @@ What is here:
 - [scenes](scenes)
 - [scripts](scripts)
 - [assets](assets)
+
+## Screenshot
+
+![Snake screenshot](image.png)
