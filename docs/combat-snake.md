@@ -79,6 +79,16 @@ Upgrade families:
   - shots wreck trees and buildings faster
 - `Boss Bounty`
   - bosses burst into richer rewards
+- `Thorns`
+  - enemies that cut into you get punished
+- `Segment Armor`
+  - body hits can burn armor instead of cutting you
+- `Drill Head`
+  - head bullets pierce through extra targets
+- `Chain Head`
+  - head bullets fork into nearby enemies
+- `Harvester`
+  - props and snakes spill more food/resources
 
 ### Upgrade Flow
 

@@ -17,6 +17,7 @@ class SnakeActor:
 	var damage_flash := 0.0
 	var poison_body := false
 	var score_value := 20
+	var archetype := "hunter"
 
 
 class FoodPickup:
@@ -37,6 +38,8 @@ class BulletData:
 	var radius := 2.0
 	var damage := 1
 	var beam_like := false
+	var pierce := 0
+	var chain := 0
 
 
 class PoisonPatch:

@@ -15,22 +15,24 @@ Already in:
 
 - chunked world generation around the player
 - biome-specific chunk colors
-- orchard / forest / city / swamp / desert biomes
+- orchard / forest / city / swamp / desert / carnival / end biomes
 - food with multiple XP values
 - enemy snakes and named bosses
 - body-cutting on enemy snakes
 - `split_on_cut` on some enemies and bosses
 - destructible trees / buildings / rocks / swamp pools
+- biome events like raids, blooms, surges, and parades
+- simple crafting resources and recipes
 - a growing upgrade pool for player weapons
 
 Still not in:
 
 - true infinite persistence / long-distance world streaming
 - full AI food competition between snakes
-- biome-specific enemy factions like real soldier snakes or necro snakes
-- boss phases and boss-specific attack scripts
+- true biome-specific enemy factions beyond the current archetypes
+- deeper boss phases and custom boss attack scripts
 - player body-part HP and head-only death rules
-- biome events, caravans, shrines, or city raids
+- caravans, shrines, or longer world events
 - inventory / stash / meta progression
 
 ## Next Upgrade Ideas
@@ -45,6 +47,10 @@ Still not in:
 - freeze trail
 - drill ram
 - scavenger vacuum
+- armor segments
+- beam splitter
+- clown minefield
+- dragon meteor breath
 
 ## World
 

@@ -5,9 +5,14 @@ const GameDefsRef = preload("res://scripts/game_defs.gd")
 const SnakeDataRef = preload("res://scripts/snake_data.gd")
 
 static func ensure_chunks(game) -> void:
+	var visible_rect: Rect2 = game.visible_world_rect().grow(GameDefsRef.CHUNK_SIZE * GameDefsRef.CELL_SIZE * 1.5)
+	var min_cell: Vector2i = GameDefsRef.point_to_cell(visible_rect.position)
+	var max_cell: Vector2i = GameDefsRef.point_to_cell(visible_rect.end)
+	var min_chunk: Vector2i = GameDefsRef.chunk_for_cell(min_cell)
+	var max_chunk: Vector2i = GameDefsRef.chunk_for_cell(max_cell)
 	var player_chunk := GameDefsRef.chunk_for_cell(game.player_body[0])
-	for cy in range(player_chunk.y - GameDefsRef.CHUNK_LOAD_RADIUS, player_chunk.y + GameDefsRef.CHUNK_LOAD_RADIUS + 1):
-		for cx in range(player_chunk.x - GameDefsRef.CHUNK_LOAD_RADIUS, player_chunk.x + GameDefsRef.CHUNK_LOAD_RADIUS + 1):
+	for cy in range(min_chunk.y, max_chunk.y + 1):
+		for cx in range(min_chunk.x, max_chunk.x + 1):
 			var coord := Vector2i(cx, cy)
 			var key := GameDefsRef.chunk_key(coord)
 			if game.chunks.has(key):
@@ -28,6 +33,10 @@ static func biome_for_chunk(chunk_coord: Vector2i) -> String:
 	var moisture: float = game_moisture_value(chunk_coord)
 	if biome_value < -0.35:
 		return "swamp" if moisture > 0.1 else "forest"
+	if biome_value > 0.62 and abs(moisture) < 0.18:
+		return "end"
+	if biome_value > 0.45 and moisture > 0.3:
+		return "carnival"
 	if biome_value < 0.05:
 		return "orchard"
 	if biome_value < 0.38:
@@ -55,18 +64,21 @@ static func game_moisture_value(chunk_coord: Vector2i) -> float:
 
 static func spawn_ambient_food(game) -> void:
 	var player_chunk := GameDefsRef.chunk_for_cell(game.player_body[0])
+	var visible_half: Vector2i = game.visible_half_cells()
+	var visible_chunk_radius: int = int(ceili(float(max(visible_half.x, visible_half.y)) / float(GameDefsRef.CHUNK_SIZE))) + 1
 	var counts := {1: 0, 3: 0, 5: 0}
 	for food in game.foods:
-		if food.chunk_coord.distance_to(player_chunk) > GameDefsRef.CHUNK_LOAD_RADIUS:
+		if food.chunk_coord.distance_to(player_chunk) > visible_chunk_radius:
 			continue
 		counts[food.value] += 1
 
 	for value in GameDefsRef.FOOD_TARGETS.keys():
 		var attempts := 0
+		var spawn_radius: int = max(visible_half.x, visible_half.y)
 		while counts[value] < GameDefsRef.FOOD_TARGETS[value] and attempts < 32:
 			attempts += 1
 			var food = SnakeDataRef.FoodPickup.new()
-			food.cell = random_cell_near_player(game, GameDefsRef.VISIBLE_CELLS_X)
+			food.cell = random_cell_near_player(game, spawn_radius)
 			if game.cell_occupied(food.cell):
 				continue
 			food.value = value
@@ -101,8 +113,14 @@ static func _spawn_chunk_content(game, chunk) -> void:
 			prop_count = 9 + int(round(3.0 * moisture))
 			food_count = 6 + int(round(2.0 * max(0.0, moisture)))
 		"city":
-			prop_count = 8 + int(round(3.0 * biome_strength))
+			prop_count = 12 + int(round(5.0 * biome_strength))
 			food_count = 4 + int(round(2.0 * max(0.0, moisture + 0.3)))
+		"carnival":
+			prop_count = 9 + int(round(4.0 * moisture))
+			food_count = 8 + int(round(3.0 * max(0.0, moisture)))
+		"end":
+			prop_count = 8 + int(round(4.0 * biome_strength))
+			food_count = 5 + int(round(2.0 * biome_strength))
 		"swamp":
 			prop_count = 7 + int(round(3.0 * moisture))
 			food_count = 5 + int(round(3.0 * max(0.0, moisture)))
@@ -115,6 +133,10 @@ static func _spawn_chunk_content(game, chunk) -> void:
 			chunk_rng.randi_range(0, GameDefsRef.CHUNK_SIZE - 1),
 			chunk_rng.randi_range(0, GameDefsRef.CHUNK_SIZE - 1)
 		)
+		if chunk.biome == "city":
+			var local: Vector2i = cell - origin
+			if local.x % 5 == 2 or local.y % 5 == 2:
+				continue
 		if game.cell_occupied(cell):
 			continue
 		var prop: SnakeDataRef.WorldProp = SnakeDataRef.WorldProp.new()
@@ -130,7 +152,13 @@ static func _spawn_chunk_content(game, chunk) -> void:
 				prop.hp = 3
 			"city":
 				prop.kind = "building"
-				prop.hp = 4
+				prop.hp = 4 + int(chunk_rng.randf() < 0.35)
+			"carnival":
+				prop.kind = "tent"
+				prop.hp = 3
+			"end":
+				prop.kind = "ender_spire"
+				prop.hp = 5
 			"swamp":
 				prop.kind = "swamp_pool"
 				prop.hp = 1
@@ -144,6 +172,10 @@ static func _spawn_chunk_content(game, chunk) -> void:
 			chunk_rng.randi_range(0, GameDefsRef.CHUNK_SIZE - 1),
 			chunk_rng.randi_range(0, GameDefsRef.CHUNK_SIZE - 1)
 		)
+		if chunk.biome == "city":
+			var local: Vector2i = cell - origin
+			if local.x % 5 != 2 and local.y % 5 != 2 and chunk_rng.randf() < 0.7:
+				continue
 		if game.cell_occupied(cell):
 			continue
 		var food: SnakeDataRef.FoodPickup = SnakeDataRef.FoodPickup.new()
@@ -153,6 +185,10 @@ static func _spawn_chunk_content(game, chunk) -> void:
 		food.value = 1
 		if chunk.biome == "orchard" and chunk_rng.randf() < 0.35:
 			food.value = 3
+		elif chunk.biome == "carnival" and chunk_rng.randf() < 0.25:
+			food.value = 5
+		elif chunk.biome == "end" and chunk_rng.randf() < 0.3:
+			food.value = 5
 		elif chunk.biome == "city" and chunk_rng.randf() < 0.18:
 			food.value = 5
 		elif chunk_rng.randf() < 0.08:

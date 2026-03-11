@@ -7,14 +7,11 @@ const CELL_SIZE := 8.0
 const STEP_TIME := 0.12
 const START_LENGTH := 4
 const CAMERA_LERP_RATE := 8.0
-const CAMERA_ZOOM := Vector2(1.3, 1.3)
+const CAMERA_ZOOM := Vector2(0.82, 0.82)
 
 const CHUNK_SIZE := 14
-const CHUNK_LOAD_RADIUS := 2
 const FOOD_DESPAWN_CHUNK_RADIUS := 4
 const ENEMY_DESPAWN_DISTANCE := 80
-const VISIBLE_CELLS_X := 46
-const VISIBLE_CELLS_Y := 32
 const SPAWN_RING_PADDING := 8
 const PLAYER_START := Vector2i(0, 0)
 
@@ -45,6 +42,8 @@ const BIOME_COLORS := {
 	"city": Color(0.2, 0.22, 0.3, 1.0),
 	"swamp": Color(0.2, 0.16, 0.26, 1.0),
 	"desert": Color(0.32, 0.26, 0.14, 1.0),
+	"carnival": Color(0.34, 0.12, 0.24, 1.0),
+	"end": Color(0.12, 0.1, 0.22, 1.0),
 }
 
 const PROP_COLORS := {
@@ -52,6 +51,8 @@ const PROP_COLORS := {
 	"building": Color(0.55, 0.58, 0.68, 1.0),
 	"swamp_pool": Color(0.42, 0.2, 0.6, 1.0),
 	"rock": Color(0.55, 0.5, 0.4, 1.0),
+	"tent": Color(0.95, 0.25, 0.55, 1.0),
+	"ender_spire": Color(0.68, 0.48, 1.0, 1.0),
 }
 
 const FOOD_TARGETS := {
@@ -79,6 +80,11 @@ enum WeaponUpgrade {
 	APPLE_BURST,
 	PROP_BREAKER,
 	BOSS_BOUNTY,
+	THORNS,
+	SEGMENT_ARMOR,
+	DRILL_HEAD,
+	CHAIN_HEAD,
+	HARVESTER,
 }
 
 const UPGRADE_DATA := {
@@ -125,6 +131,26 @@ const UPGRADE_DATA := {
 	WeaponUpgrade.BOSS_BOUNTY: {
 		"name": "Boss Bounty",
 		"desc": "Bosses and elites explode into richer rewards.",
+	},
+	WeaponUpgrade.THORNS: {
+		"name": "Thorns",
+		"desc": "Enemies that cut into you take return damage.",
+	},
+	WeaponUpgrade.SEGMENT_ARMOR: {
+		"name": "Segment Armor",
+		"desc": "Body hits can burn armor instead of chopping you.",
+	},
+	WeaponUpgrade.DRILL_HEAD: {
+		"name": "Drill Head",
+		"desc": "Head bullets pierce through extra targets.",
+	},
+	WeaponUpgrade.CHAIN_HEAD: {
+		"name": "Chain Head",
+		"desc": "Head bullets fork into nearby enemy snakes.",
+	},
+	WeaponUpgrade.HARVESTER: {
+		"name": "Harvester",
+		"desc": "Props and snakes spill extra food and resources.",
 	},
 }
 
@@ -174,6 +200,14 @@ static func chunk_rect(chunk_coord: Vector2i) -> Rect2:
 	)
 
 
-static func visible_world_rect(center: Vector2) -> Rect2:
-	var half := Vector2(VISIBLE_CELLS_X, VISIBLE_CELLS_Y) * CELL_SIZE * 0.5
+static func visible_world_rect(center: Vector2, viewport_size: Vector2, zoom: Vector2) -> Rect2:
+	var half := viewport_size * zoom * 0.5
 	return Rect2(center - half, half * 2.0)
+
+
+static func visible_half_cells(viewport_size: Vector2, zoom: Vector2) -> Vector2i:
+	var world_half: Vector2 = viewport_size * zoom * 0.5
+	return Vector2i(
+		int(ceili(world_half.x / CELL_SIZE)),
+		int(ceili(world_half.y / CELL_SIZE))
+	)

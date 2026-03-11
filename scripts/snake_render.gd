@@ -4,7 +4,7 @@ class_name SnakeRender
 const GameDefsRef = preload("res://scripts/game_defs.gd")
 
 static func draw_world(game) -> void:
-	var view_rect := GameDefsRef.visible_world_rect(game.camera.position)
+	var view_rect: Rect2 = game.visible_world_rect()
 	_draw_chunks(game, view_rect)
 	_draw_props(game, view_rect)
 	_draw_foods(game, view_rect)
@@ -20,6 +20,17 @@ static func _draw_chunks(game, view_rect: Rect2) -> void:
 		if not rect.intersects(view_rect.grow(GameDefsRef.CELL_SIZE * 2.0)):
 			continue
 		game.draw_rect(rect, GameDefsRef.BIOME_COLORS[chunk.biome])
+		if chunk.biome == "city":
+			for offset in [2, 7, 12]:
+				var x := rect.position.x + float(offset) * GameDefsRef.CELL_SIZE
+				var y := rect.position.y + float(offset) * GameDefsRef.CELL_SIZE
+				game.draw_line(Vector2(x, rect.position.y), Vector2(x, rect.end.y), Color(0.32, 0.34, 0.4, 0.8), 1.0)
+				game.draw_line(Vector2(rect.position.x, y), Vector2(rect.end.x, y), Color(0.32, 0.34, 0.4, 0.8), 1.0)
+		elif chunk.biome == "carnival":
+			game.draw_circle(rect.get_center(), rect.size.x * 0.08, Color(0.98, 0.4, 0.72, 0.18))
+		elif chunk.biome == "end":
+			game.draw_line(rect.position, rect.end, Color(0.6, 0.45, 1.0, 0.12), 1.0)
+			game.draw_line(Vector2(rect.end.x, rect.position.y), Vector2(rect.position.x, rect.end.y), Color(0.6, 0.45, 1.0, 0.12), 1.0)
 		game.draw_rect(rect, Color(0.15, 0.16, 0.18, 0.4), false, 1.0)
 
 
@@ -38,6 +49,18 @@ static func _draw_props(game, view_rect: Rect2) -> void:
 			"building":
 				game.draw_rect(rect, color)
 				game.draw_rect(rect.grow(-1.0), Color(0.18, 0.2, 0.26))
+			"tent":
+				game.draw_polygon(
+					PackedVector2Array([
+						rect.position + Vector2(0, rect.size.y),
+						rect.position + Vector2(rect.size.x * 0.5, 1),
+						rect.position + Vector2(rect.size.x, rect.size.y),
+					]),
+					PackedColorArray([color, color.lightened(0.2), color])
+				)
+			"ender_spire":
+				game.draw_rect(Rect2(rect.position + Vector2(3, 0), Vector2(2, 8)), color)
+				game.draw_circle(rect.get_center() + Vector2(0, 1), 2.2, Color(1.0, 0.9, 1.0))
 			"swamp_pool":
 				game.draw_circle(rect.get_center(), 3.5, color)
 			_:
@@ -85,6 +108,12 @@ static func _draw_snakes(game, view_rect: Rect2) -> void:
 			continue
 		var tint := GameDefsRef.PLAYER_HEAD_COLOR if segment_index == 0 else GameDefsRef.PLAYER_BODY_COLOR
 		game.draw_texture_rect(GameDefsRef.TILE_TEXTURE, rect, false, tint)
+	if game.player_armor_charges > 0 and not game.player_body.is_empty():
+		var head_center := GameDefsRef.cell_center(game.player_body[0])
+		for armor_index in range(game.player_armor_charges):
+			var angle := -PI * 0.5 + armor_index * 0.55
+			var armor_pos := head_center + Vector2(cos(angle), sin(angle)) * 6.0
+			game.draw_circle(armor_pos, 1.8, Color(0.55, 0.9, 1.0))
 
 	for angle in game.orbit_angles:
 		var radius := 14.0 + float(game.upgrade_levels[GameDefsRef.WeaponUpgrade.ORBIT_BULLETS]) * 4.0

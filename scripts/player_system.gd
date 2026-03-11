@@ -45,6 +45,12 @@ static func step(game) -> void:
 
 	var enemy_hit: Dictionary = game.enemy_cell_hit(new_head)
 	if new_head in game.player_body or enemy_hit["snake_index"] != -1:
+		if enemy_hit["snake_index"] != -1 and game.upgrade_levels[GameDefsRef.WeaponUpgrade.THORNS] > 0:
+			game.damage_enemy_segment(
+				enemy_hit["snake_index"],
+				enemy_hit["segment_index"],
+				1 + game.upgrade_levels[GameDefsRef.WeaponUpgrade.THORNS]
+			)
 		game.kill_player()
 		return
 

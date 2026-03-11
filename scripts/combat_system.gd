@@ -66,12 +66,21 @@ static func _update_bullets(game, delta: float) -> void:
 			var prop = game.prop_at_cell(hit_cell)
 			if prop != null:
 				game.damage_prop(prop, bullet.pos, bullet.damage + game.upgrade_levels[GameDefsRef.WeaponUpgrade.PROP_BREAKER])
-				remove = true
+				if bullet.pierce > 0:
+					bullet.pierce -= 1
+				else:
+					remove = true
 			else:
 				var hit: Dictionary = game.enemy_hit_by_point(bullet.pos)
 				if hit["snake_index"] != -1:
 					game.damage_enemy_segment(hit["snake_index"], hit["segment_index"], bullet.pos, bullet.damage)
-					remove = true
+					if bullet.chain > 0:
+						_chain_bullet_to_nearby_enemy(game, bullet, hit["snake_index"], bullet.pos)
+						bullet.chain -= 1
+					if bullet.pierce > 0:
+						bullet.pierce -= 1
+					else:
+						remove = true
 		else:
 			for segment in game.player_body:
 				if segment == hit_cell:
@@ -149,3 +158,20 @@ static func _closest_point_on_segment(point: Vector2, a: Vector2, b: Vector2) ->
 		return a
 	var t: float = clamp((point - a).dot(ab) / length_squared, 0.0, 1.0)
 	return a + ab * t
+
+
+static func _chain_bullet_to_nearby_enemy(game, bullet, snake_index: int, from_pos: Vector2) -> void:
+	var target: Dictionary = game.nearest_enemy_segment_except(from_pos, snake_index)
+	if target["snake_index"] == -1 or target["distance"] > 44.0:
+		return
+	var target_center: Vector2 = GameDefsRef.cell_center(target["cell"])
+	game.spawn_bullet(
+		from_pos,
+		(target_center - from_pos).normalized(),
+		124.0,
+		true,
+		0.45,
+		bullet.color.lightened(0.2),
+		max(1.5, bullet.radius - 0.2),
+		bullet.damage
+	)
