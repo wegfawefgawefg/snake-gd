@@ -40,11 +40,11 @@ const FOOD_COLORS := {
 }
 
 const BIOME_COLORS := {
-	"orchard": Color(0.08, 0.12, 0.07, 1.0),
-	"forest": Color(0.06, 0.1, 0.08, 1.0),
-	"city": Color(0.09, 0.09, 0.11, 1.0),
-	"swamp": Color(0.08, 0.1, 0.06, 1.0),
-	"desert": Color(0.12, 0.1, 0.07, 1.0),
+	"orchard": Color(0.16, 0.28, 0.14, 1.0),
+	"forest": Color(0.08, 0.22, 0.16, 1.0),
+	"city": Color(0.2, 0.22, 0.3, 1.0),
+	"swamp": Color(0.2, 0.16, 0.26, 1.0),
+	"desert": Color(0.32, 0.26, 0.14, 1.0),
 }
 
 const PROP_COLORS := {
@@ -73,6 +73,12 @@ enum WeaponUpgrade {
 	BEAM_HEAD,
 	ORBIT_BULLETS,
 	POISON_TRAIL,
+	FRONT_FAN,
+	RAPID_HEAD,
+	FOOD_MAGNET,
+	APPLE_BURST,
+	PROP_BREAKER,
+	BOSS_BOUNTY,
 }
 
 const UPGRADE_DATA := {
@@ -95,6 +101,30 @@ const UPGRADE_DATA := {
 	WeaponUpgrade.POISON_TRAIL: {
 		"name": "Poison Trail",
 		"desc": "Movement leaves a damaging trail.",
+	},
+	WeaponUpgrade.FRONT_FAN: {
+		"name": "Front Fan",
+		"desc": "Head shot adds angled side rounds.",
+	},
+	WeaponUpgrade.RAPID_HEAD: {
+		"name": "Rapid Head",
+		"desc": "Head gun fires much faster.",
+	},
+	WeaponUpgrade.FOOD_MAGNET: {
+		"name": "Food Magnet",
+		"desc": "Nearby food gets sucked into your head.",
+	},
+	WeaponUpgrade.APPLE_BURST: {
+		"name": "Apple Burst",
+		"desc": "Eating food emits a radial shot burst.",
+	},
+	WeaponUpgrade.PROP_BREAKER: {
+		"name": "Prop Breaker",
+		"desc": "Shots and beams wreck trees and buildings faster.",
+	},
+	WeaponUpgrade.BOSS_BOUNTY: {
+		"name": "Boss Bounty",
+		"desc": "Bosses and elites explode into richer rewards.",
 	},
 }
 

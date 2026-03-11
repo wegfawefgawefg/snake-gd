@@ -9,6 +9,43 @@ After the combat-snake prototype, the next expansion path is:
 - named bosses
 - segment-cutting combat where body damage matters
 
+## Current Prototype Status
+
+Already in:
+
+- chunked world generation around the player
+- biome-specific chunk colors
+- orchard / forest / city / swamp / desert biomes
+- food with multiple XP values
+- enemy snakes and named bosses
+- body-cutting on enemy snakes
+- `split_on_cut` on some enemies and bosses
+- destructible trees / buildings / rocks / swamp pools
+- a growing upgrade pool for player weapons
+
+Still not in:
+
+- true infinite persistence / long-distance world streaming
+- full AI food competition between snakes
+- biome-specific enemy factions like real soldier snakes or necro snakes
+- boss phases and boss-specific attack scripts
+- player body-part HP and head-only death rules
+- biome events, caravans, shrines, or city raids
+- inventory / stash / meta progression
+
+## Next Upgrade Ideas
+
+- chain lightning head
+- mortar apples
+- dash bite
+- thorns on body contact
+- turret segment
+- shield segment
+- parasite rounds
+- freeze trail
+- drill ram
+- scavenger vacuum
+
 ## World
 
 ### Chunks

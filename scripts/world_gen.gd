@@ -24,18 +24,33 @@ static func ensure_chunks(game) -> void:
 
 
 static func biome_for_chunk(chunk_coord: Vector2i) -> String:
-	var roll: int = abs(_hash2(chunk_coord.x, chunk_coord.y)) % 5
-	match roll:
-		0:
-			return "orchard"
-		1:
-			return "forest"
-		2:
-			return "city"
-		3:
-			return "swamp"
-		_:
-			return "desert"
+	var biome_value: float = game_biome_value(chunk_coord)
+	var moisture: float = game_moisture_value(chunk_coord)
+	if biome_value < -0.35:
+		return "swamp" if moisture > 0.1 else "forest"
+	if biome_value < 0.05:
+		return "orchard"
+	if biome_value < 0.38:
+		return "city" if moisture < -0.1 else "forest"
+	return "desert"
+
+
+static func game_biome_value(chunk_coord: Vector2i) -> float:
+	var noise := FastNoiseLite.new()
+	noise.seed = 9137
+	noise.frequency = 0.085
+	noise.fractal_octaves = 3
+	noise.fractal_gain = 0.55
+	return noise.get_noise_2d(float(chunk_coord.x), float(chunk_coord.y))
+
+
+static func game_moisture_value(chunk_coord: Vector2i) -> float:
+	var noise := FastNoiseLite.new()
+	noise.seed = 23117
+	noise.frequency = 0.12
+	noise.fractal_octaves = 2
+	noise.fractal_gain = 0.6
+	return noise.get_noise_2d(float(chunk_coord.x), float(chunk_coord.y))
 
 
 static func spawn_ambient_food(game) -> void:
@@ -73,25 +88,27 @@ static func _spawn_chunk_content(game, chunk) -> void:
 	var chunk_rng := RandomNumberGenerator.new()
 	chunk_rng.seed = int(abs(_hash2(chunk.coord.x * 43, chunk.coord.y * 29)))
 	var origin: Vector2i = GameDefsRef.chunk_origin(chunk.coord)
+	var biome_strength: float = abs(game_biome_value(chunk.coord))
+	var moisture: float = game_moisture_value(chunk.coord)
 
 	var prop_count := 4
 	var food_count := 8
 	match chunk.biome:
 		"orchard":
-			prop_count = 7
-			food_count = 12
+			prop_count = 5 + int(round(4.0 + moisture * 3.0))
+			food_count = 11 + int(round(5.0 * (1.0 - biome_strength)))
 		"forest":
-			prop_count = 10
-			food_count = 6
+			prop_count = 9 + int(round(3.0 * moisture))
+			food_count = 6 + int(round(2.0 * max(0.0, moisture)))
 		"city":
-			prop_count = 8
-			food_count = 5
+			prop_count = 8 + int(round(3.0 * biome_strength))
+			food_count = 4 + int(round(2.0 * max(0.0, moisture + 0.3)))
 		"swamp":
-			prop_count = 8
-			food_count = 6
+			prop_count = 7 + int(round(3.0 * moisture))
+			food_count = 5 + int(round(3.0 * max(0.0, moisture)))
 		"desert":
-			prop_count = 5
-			food_count = 7
+			prop_count = 4 + int(round(2.0 * biome_strength))
+			food_count = 5 + int(round(2.0 * max(0.0, -moisture)))
 
 	for _i in range(prop_count):
 		var cell := origin + Vector2i(

@@ -35,6 +35,7 @@ var rear_shot_timer := 0.0
 var beam_tick_timer := 0.0
 var enemy_spawn_timer := 0.0
 var boss_spawn_timer := 14.0
+var biome_name := "Orchard"
 
 var upgrade_levels := {
 	GameDefsRef.WeaponUpgrade.SIDE_SHOTS: 0,
@@ -42,6 +43,12 @@ var upgrade_levels := {
 	GameDefsRef.WeaponUpgrade.BEAM_HEAD: 0,
 	GameDefsRef.WeaponUpgrade.ORBIT_BULLETS: 0,
 	GameDefsRef.WeaponUpgrade.POISON_TRAIL: 0,
+	GameDefsRef.WeaponUpgrade.FRONT_FAN: 0,
+	GameDefsRef.WeaponUpgrade.RAPID_HEAD: 0,
+	GameDefsRef.WeaponUpgrade.FOOD_MAGNET: 0,
+	GameDefsRef.WeaponUpgrade.APPLE_BURST: 0,
+	GameDefsRef.WeaponUpgrade.PROP_BREAKER: 0,
+	GameDefsRef.WeaponUpgrade.BOSS_BOUNTY: 0,
 }
 var current_upgrade_choices: Array = []
 
@@ -54,6 +61,7 @@ var current_upgrade_choices: Array = []
 @onready var score_label: Label = $Ui/ScoreLabel
 @onready var xp_label: Label = $Ui/XpLabel
 @onready var boss_label: Label = $Ui/BossLabel
+@onready var biome_label: Label = $Ui/BiomeLabel
 @onready var upgrade_summary: Label = $Ui/UpgradeSummary
 @onready var center_panel: ColorRect = $Ui/CenterPanel
 @onready var center_title: Label = $Ui/CenterTitle
@@ -131,6 +139,7 @@ func reset_run() -> void:
 	current_upgrade_choices.clear()
 	WorldGenRef.ensure_chunks(self)
 	WorldGenRef.spawn_ambient_food(self)
+	biome_name = pretty_biome_name(biome_for_cell(player_body[0]))
 
 
 func update_camera(delta: float) -> void:
@@ -144,6 +153,7 @@ func update_ui() -> void:
 	score_label.text = "Score: %d" % score
 	xp_label.text = "XP: %d / %d" % [xp, next_upgrade_xp]
 	boss_label.text = current_boss_name()
+	biome_label.text = biome_name
 	upgrade_summary.text = build_upgrade_summary()
 	center_panel.visible = game_state == GameDefsRef.GameState.TITLE or game_state == GameDefsRef.GameState.GAME_OVER
 	upgrade_panel.visible = game_state == GameDefsRef.GameState.CHOOSING_UPGRADE
@@ -195,6 +205,12 @@ func roll_upgrade_choices() -> void:
 		GameDefsRef.WeaponUpgrade.BEAM_HEAD,
 		GameDefsRef.WeaponUpgrade.ORBIT_BULLETS,
 		GameDefsRef.WeaponUpgrade.POISON_TRAIL,
+		GameDefsRef.WeaponUpgrade.FRONT_FAN,
+		GameDefsRef.WeaponUpgrade.RAPID_HEAD,
+		GameDefsRef.WeaponUpgrade.FOOD_MAGNET,
+		GameDefsRef.WeaponUpgrade.APPLE_BURST,
+		GameDefsRef.WeaponUpgrade.PROP_BREAKER,
+		GameDefsRef.WeaponUpgrade.BOSS_BOUNTY,
 	]
 	current_upgrade_choices.clear()
 	while current_upgrade_choices.size() < 3 and not pool.is_empty():
@@ -214,6 +230,17 @@ func apply_upgrade_choice(choice_index: int) -> void:
 	var chosen = current_upgrade_choices[choice_index]
 	upgrade_levels[chosen.kind] += 1
 	game_state = GameDefsRef.GameState.PLAYING
+
+
+func handle_player_food_pickup(cell: Vector2i, food_value: int) -> void:
+	score += food_value * 10
+	gain_xp(food_value)
+	if upgrade_levels[GameDefsRef.WeaponUpgrade.APPLE_BURST] > 0:
+		var shot_count: int = 4 + upgrade_levels[GameDefsRef.WeaponUpgrade.APPLE_BURST] * 2
+		for shot_index in range(shot_count):
+			var angle := (TAU / float(shot_count)) * float(shot_index)
+			var dir := Vector2(cos(angle), sin(angle))
+			spawn_bullet(GameDefsRef.cell_center(cell), dir, 88.0, true, 0.7, Color(1.0, 0.5, 0.25), 1.8, 1)
 
 
 func spawn_bullet(pos: Vector2, dir: Vector2, speed: float, friendly: bool, ttl: float, color: Color, radius: float, damage: int) -> void:
@@ -352,10 +379,12 @@ func damage_enemy_segment(snake_index: int, segment_index: int, world_pos: Vecto
 func kill_enemy_snake(index: int, cells: Array, was_boss: bool) -> void:
 	if index >= 0 and index < enemy_snakes.size():
 		enemy_snakes.remove_at(index)
+	var best_food_value := 3 if upgrade_levels[GameDefsRef.WeaponUpgrade.BOSS_BOUNTY] > 0 and was_boss else 1
 	for segment in cells:
-		spawn_food(segment, 1 if rng.randf() < 0.7 else (5 if was_boss and rng.randf() < 0.25 else 3))
-	score += 160 if was_boss else 40
-	gain_xp(5 if was_boss else 2)
+		var drop_value := 1 if rng.randf() < 0.7 else (5 if was_boss and rng.randf() < 0.25 else 3)
+		spawn_food(segment, max(drop_value, best_food_value))
+	score += 260 if was_boss and upgrade_levels[GameDefsRef.WeaponUpgrade.BOSS_BOUNTY] > 0 else (160 if was_boss else 40)
+	gain_xp((7 if upgrade_levels[GameDefsRef.WeaponUpgrade.BOSS_BOUNTY] > 0 else 5) if was_boss else 2)
 
 
 func damage_prop(prop, _world_pos: Vector2, damage: int) -> void:
@@ -417,8 +446,35 @@ func biome_for_cell(cell: Vector2i) -> String:
 	return WorldGenRef.biome_for_chunk(GameDefsRef.chunk_for_cell(cell))
 
 
+func pretty_biome_name(biome: String) -> String:
+	match biome:
+		"orchard":
+			return "Biome: Orchard"
+		"forest":
+			return "Biome: Forest"
+		"city":
+			return "Biome: City"
+		"swamp":
+			return "Biome: Swamp"
+		_:
+			return "Biome: Desert"
+
+
 func _update_foods(delta: float) -> void:
 	for food in foods:
 		food.phase += delta * 2.2
+	if game_state == GameDefsRef.GameState.PLAYING and upgrade_levels[GameDefsRef.WeaponUpgrade.FOOD_MAGNET] > 0:
+		var head: Vector2i = player_body[0]
+		var magnet_radius: int = 2 + upgrade_levels[GameDefsRef.WeaponUpgrade.FOOD_MAGNET] * 2
+		for i in range(foods.size() - 1, -1, -1):
+			var food = foods[i]
+			var dist: int = abs(food.cell.x - head.x) + abs(food.cell.y - head.y)
+			if dist <= magnet_radius:
+				var value: int = food.value
+				var cell: Vector2i = food.cell
+				foods.remove_at(i)
+				handle_player_food_pickup(cell, value)
 	for prop in props:
 		prop.damage_flash = max(prop.damage_flash - delta * 4.0, 0.0)
+	if not player_body.is_empty():
+		biome_name = pretty_biome_name(biome_for_cell(player_body[0]))

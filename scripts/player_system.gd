@@ -59,8 +59,7 @@ static func step(game) -> void:
 	game.player_body.push_front(new_head)
 	var food_value: int = game.consume_food_at(new_head)
 	if food_value > 0:
-		game.score += food_value * 10
-		game.gain_xp(food_value)
+		game.handle_player_food_pickup(new_head, food_value)
 	else:
 		game.player_body.pop_back()
 

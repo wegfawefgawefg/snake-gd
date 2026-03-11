@@ -67,6 +67,18 @@ Upgrade families:
   - orbiting projectiles around the head
 - `Poison Trail`
   - dropped hazard behind the snake
+- `Front Fan`
+  - extra angled head shots
+- `Rapid Head`
+  - faster head gun cadence
+- `Food Magnet`
+  - nearby food gets vacuumed in
+- `Apple Burst`
+  - eating food emits radial shots
+- `Prop Breaker`
+  - shots wreck trees and buildings faster
+- `Boss Bounty`
+  - bosses burst into richer rewards
 
 ### Upgrade Flow
 
