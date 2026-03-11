@@ -1,0 +1,142 @@
+extends RefCounted
+class_name CombatSystem
+
+const GameDefsRef = preload("res://scripts/game_defs.gd")
+const SnakeDataRef = preload("res://scripts/snake_data.gd")
+
+static func update(game, delta: float) -> void:
+	game.head_shot_timer -= delta
+	game.side_shot_timer -= delta
+	game.rear_shot_timer -= delta
+	game.beam_tick_timer -= delta
+
+	_fire_player_weapons(game)
+	_update_bullets(game, delta)
+	_update_poisons(game, delta)
+	_update_orbits(game, delta)
+
+
+static func _fire_player_weapons(game) -> void:
+	var head_pos := GameDefsRef.cell_center(game.player_body[0])
+	if game.head_shot_timer <= 0.0:
+		game.spawn_bullet(head_pos, GameDefsRef.direction_vec(game.player_direction), 108.0, true, 1.1, Color(0.95, 1.0, 0.7), 2.0, 1)
+		game.head_shot_timer = 0.24
+
+	if game.upgrade_levels[GameDefsRef.WeaponUpgrade.SIDE_SHOTS] > 0 and game.side_shot_timer <= 0.0:
+		var left: Vector2 = Vector2(-game.player_direction.y, game.player_direction.x)
+		var right := -left
+		var stride: int = max(1, 4 - game.upgrade_levels[GameDefsRef.WeaponUpgrade.SIDE_SHOTS])
+		for idx in range(1, game.player_body.size(), stride):
+			var cell_pos := GameDefsRef.cell_center(game.player_body[idx])
+			game.spawn_bullet(cell_pos, left, 92.0, true, 0.95, Color(0.72, 0.95, 1.0), 2.0, 1)
+			game.spawn_bullet(cell_pos, right, 92.0, true, 0.95, Color(0.72, 0.95, 1.0), 2.0, 1)
+		game.side_shot_timer = 0.52
+
+	if game.upgrade_levels[GameDefsRef.WeaponUpgrade.REAR_SHOTS] > 0 and game.rear_shot_timer <= 0.0:
+		var tail_pos := GameDefsRef.cell_center(game.player_body[game.player_body.size() - 1])
+		var back := -GameDefsRef.direction_vec(game.player_direction)
+		for _i in range(game.upgrade_levels[GameDefsRef.WeaponUpgrade.REAR_SHOTS]):
+			game.spawn_bullet(tail_pos, back, 100.0, true, 1.0, Color(1.0, 0.7, 0.35), 2.1, 1)
+		game.rear_shot_timer = 0.4
+
+	if game.upgrade_levels[GameDefsRef.WeaponUpgrade.BEAM_HEAD] > 0 and game.beam_tick_timer <= 0.0:
+		var beam_length := 80.0 + float(game.upgrade_levels[GameDefsRef.WeaponUpgrade.BEAM_HEAD]) * 24.0
+		damage_enemies_in_beam(game, head_pos, GameDefsRef.direction_vec(game.player_direction), beam_length)
+		damage_props_in_beam(game, head_pos, GameDefsRef.direction_vec(game.player_direction), beam_length)
+		game.beam_tick_timer = 0.1
+
+
+static func _update_bullets(game, delta: float) -> void:
+	for i in range(game.bullets.size() - 1, -1, -1):
+		var bullet = game.bullets[i]
+		bullet.ttl -= delta
+		bullet.pos += bullet.vel * delta
+		var remove: bool = bullet.ttl <= 0.0
+		var hit_cell := GameDefsRef.point_to_cell(bullet.pos)
+		if bullet.friendly:
+			var prop = game.prop_at_cell(hit_cell)
+			if prop != null:
+				game.damage_prop(prop, bullet.pos, bullet.damage)
+				remove = true
+			else:
+				var hit: Dictionary = game.enemy_hit_by_point(bullet.pos)
+				if hit["snake_index"] != -1:
+					game.damage_enemy_segment(hit["snake_index"], hit["segment_index"], bullet.pos, bullet.damage)
+					remove = true
+		else:
+			for segment in game.player_body:
+				if segment == hit_cell:
+					game.cut_player_at(hit_cell)
+					remove = true
+					break
+
+		if remove:
+			game.bullets.remove_at(i)
+		else:
+			game.bullets[i] = bullet
+
+
+static func _update_poisons(game, delta: float) -> void:
+	for i in range(game.poisons.size() - 1, -1, -1):
+		var poison = game.poisons[i]
+		poison.ttl -= delta
+		if poison.ttl <= 0.0:
+			game.poisons.remove_at(i)
+			continue
+		for j in range(game.enemy_snakes.size() - 1, -1, -1):
+			var snake = game.enemy_snakes[j]
+			var idx: int = snake.body.find(poison.cell)
+			if idx != -1:
+				game.damage_enemy_segment(j, idx, GameDefsRef.cell_center(poison.cell), 1)
+				break
+		if poison.cell in game.player_body:
+			game.cut_player_at(poison.cell)
+		game.poisons[i] = poison
+
+
+static func _update_orbits(game, delta: float) -> void:
+	var target_count := int(game.upgrade_levels[GameDefsRef.WeaponUpgrade.ORBIT_BULLETS]) * 2
+	while game.orbit_angles.size() < target_count:
+		game.orbit_angles.append(float(game.orbit_angles.size()) * PI)
+	while game.orbit_angles.size() > target_count:
+		game.orbit_angles.pop_back()
+
+	for i in range(game.orbit_angles.size()):
+		game.orbit_angles[i] += delta * (1.8 + float(i) * 0.1)
+		var radius := 14.0 + float(game.upgrade_levels[GameDefsRef.WeaponUpgrade.ORBIT_BULLETS]) * 4.0
+		var pos := GameDefsRef.cell_center(game.player_body[0]) + Vector2(cos(game.orbit_angles[i]), sin(game.orbit_angles[i])) * radius
+		var hit: Dictionary = game.enemy_hit_by_point(pos)
+		if hit["snake_index"] != -1:
+			game.damage_enemy_segment(hit["snake_index"], hit["segment_index"], pos, 1)
+
+
+static func damage_enemies_in_beam(game, start: Vector2, direction: Vector2, length: float) -> void:
+	var dir: Vector2 = direction.normalized()
+	var beam_end := start + dir * length
+	for snake_index in range(game.enemy_snakes.size() - 1, -1, -1):
+		var snake = game.enemy_snakes[snake_index]
+		for segment_index in range(snake.body.size()):
+			var center := GameDefsRef.cell_center(snake.body[segment_index])
+			var closest := _closest_point_on_segment(center, start, beam_end)
+			if center.distance_to(closest) <= GameDefsRef.CELL_SIZE * 0.55:
+				game.damage_enemy_segment(snake_index, segment_index, center, 1)
+				break
+
+
+static func damage_props_in_beam(game, start: Vector2, direction: Vector2, length: float) -> void:
+	var dir: Vector2 = direction.normalized()
+	var beam_end := start + dir * length
+	for prop in game.props:
+		var center := GameDefsRef.cell_center(prop.cell)
+		var closest := _closest_point_on_segment(center, start, beam_end)
+		if center.distance_to(closest) <= GameDefsRef.CELL_SIZE * 0.55:
+			game.damage_prop(prop, center, 1)
+
+
+static func _closest_point_on_segment(point: Vector2, a: Vector2, b: Vector2) -> Vector2:
+	var ab: Vector2 = b - a
+	var length_squared: float = ab.length_squared()
+	if length_squared <= 0.0001:
+		return a
+	var t: float = clamp((point - a).dot(ab) / length_squared, 0.0, 1.0)
+	return a + ab * t
