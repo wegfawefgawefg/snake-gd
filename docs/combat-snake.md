@@ -16,6 +16,18 @@ The goal is to keep the easy-to-read Snake movement rule, but layer in:
 - combat and auto-attacks
 - upgrade choices during runs
 
+## Current State
+
+The prototype actually reached a fun state:
+
+- large chunked biome map
+- enemy snakes
+- named bosses
+- upgrades, XP, and food economy
+- simple crafting/resources
+
+But this repo also found its limits. It works as a design sandbox, not as a long-term production base. The idea feels stronger than the current Godot implementation, and if it were ever taken further, a rewrite in C+- would probably make more sense than continuing to pile systems into this prototype.
+
 ## Core Loop
 
 1. Move through a larger arena.

@@ -9,6 +9,8 @@ const ProgressionSystemRef = preload("res://scripts/progression_system.gd")
 static func update(game) -> void:
 	game.score_label.text = "Score: %d" % game.score
 	game.xp_label.text = "XP: %d / %d" % [game.xp, game.next_upgrade_xp]
+	game.zoom_label.text = "Zoom: %.2f" % game.camera.zoom.x
+	game.fps_label.text = "FPS: %d" % Engine.get_frames_per_second()
 	game.biome_label.text = game.biome_name
 	game.boss_label.text = ActorSystemRef.current_boss_name(game)
 	game.event_label.text = game.event_name

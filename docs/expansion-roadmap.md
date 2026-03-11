@@ -9,6 +9,8 @@ After the combat-snake prototype, the next expansion path is:
 - named bosses
 - segment-cutting combat where body damage matters
 
+This roadmap is intentionally bigger than the current prototype. It represents where the idea could go, not a promise that this specific Godot repo should keep absorbing features forever.
+
 ## Current Prototype Status
 
 Already in:
@@ -34,6 +36,17 @@ Still not in:
 - player body-part HP and head-only death rules
 - caravans, shrines, or longer world events
 - inventory / stash / meta progression
+- a proper endgame spectacle or full Ender Dragon fight
+
+## Practical Takeaway
+
+The concept proved itself. The current codebase proved less compelling as a long-term foundation.
+
+So the likely real path from here would be:
+
+1. keep this repo as the design/reference sandbox
+2. steal the best ideas from it
+3. rewrite it in a faster, more explicit C+- architecture if the project ever becomes serious
 
 ## Next Upgrade Ideas
 

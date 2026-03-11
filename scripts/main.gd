@@ -74,6 +74,8 @@ var current_upgrade_choices: Array = []
 @onready var camera: Camera2D = $Camera2D
 @onready var score_label: Label = $Ui/ScoreLabel
 @onready var xp_label: Label = $Ui/XpLabel
+@onready var zoom_label: Label = $Ui/ZoomLabel
+@onready var fps_label: Label = $Ui/FpsLabel
 @onready var boss_label: Label = $Ui/BossLabel
 @onready var event_label: Label = $Ui/EventLabel
 @onready var biome_label: Label = $Ui/BiomeLabel
@@ -124,9 +126,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_EQUAL, KEY_PLUS, KEY_KP_ADD:
-				CameraSystemRef.change_zoom(self, GameDefsRef.CAMERA_ZOOM_STEP)
-			KEY_MINUS, KEY_KP_SUBTRACT:
 				CameraSystemRef.change_zoom(self, -GameDefsRef.CAMERA_ZOOM_STEP)
+			KEY_MINUS, KEY_KP_SUBTRACT:
+				CameraSystemRef.change_zoom(self, GameDefsRef.CAMERA_ZOOM_STEP)
 
 	if game_state != GameDefsRef.GameState.PLAYING:
 		return

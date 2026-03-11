@@ -1,4 +1,4 @@
-# Snake
+# Snake-gd
 
 Small Godot prototype for making a version of Snake with my brother.
 
@@ -10,7 +10,22 @@ What is here:
 
 - a lightweight Godot project
 - scenes, scripts, and a small asset set
-- an early attempt at a Snake game rather than a finished one
+- an early Snake prototype that later turned into a much weirder combat/slither experiment
+
+The March 2026 pass pushed it much further than the original toy:
+
+- larger biome-based world chunks
+- enemy snakes and named bosses
+- food/XP/upgrades
+- simple crafting/resources
+- multiple weapon behaviors and upgrade paths
+
+It is now a fun experiment, but it is still not something I would keep scaling in Godot. The prototype is useful for design discovery, but the long-term direction would probably be a rewrite in C+- if the idea were ever taken seriously.
+
+See:
+
+- [docs/combat-snake.md](docs/combat-snake.md)
+- [docs/expansion-roadmap.md](docs/expansion-roadmap.md)
 
 ## Structure
 
