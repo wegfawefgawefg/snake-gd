@@ -4,6 +4,7 @@ class_name ActorSystem
 const GameDefsRef = preload("res://scripts/game_defs.gd")
 const SnakeDataRef = preload("res://scripts/snake_data.gd")
 const WorldGenRef = preload("res://scripts/world_gen.gd")
+const ProgressionSystemRef = preload("res://scripts/progression_system.gd")
 
 static func spawn_bullet(game, pos: Vector2, dir: Vector2, speed: float, friendly: bool, ttl: float, color: Color, radius: float, damage: int) -> void:
 	var bullet = SnakeDataRef.BulletData.new()
@@ -140,7 +141,7 @@ static func damage_enemy_segment(game, snake_index: int, segment_index: int, dam
 		return
 	game.enemy_snakes[snake_index] = snake
 	game.score += int(snake.score_value / 3)
-	game.gain_xp(1)
+	ProgressionSystemRef.gain_xp(game, 1)
 	spawn_food(game, snake.body[snake.body.size() - 1], 1)
 	if game.upgrade_levels[GameDefsRef.WeaponUpgrade.HARVESTER] > 0:
 		spawn_food(game, snake.body[snake.body.size() - 1], 3 if game.rng.randf() < 0.5 else 1)
@@ -172,7 +173,7 @@ static func kill_enemy_snake(game, index: int, cells: Array, was_boss: bool) -> 
 		var drop_value := 1 if game.rng.randf() < 0.7 else (5 if was_boss and game.rng.randf() < 0.25 else 3)
 		spawn_food(game, segment, max(drop_value, best_food_value))
 	game.score += 260 if was_boss and game.upgrade_levels[GameDefsRef.WeaponUpgrade.BOSS_BOUNTY] > 0 else (160 if was_boss else 40)
-	game.gain_xp((7 if game.upgrade_levels[GameDefsRef.WeaponUpgrade.BOSS_BOUNTY] > 0 else 5) if was_boss else 2)
+	ProgressionSystemRef.gain_xp(game, (7 if game.upgrade_levels[GameDefsRef.WeaponUpgrade.BOSS_BOUNTY] > 0 else 5) if was_boss else 2)
 
 
 static func damage_prop(game, prop, damage: int) -> void:

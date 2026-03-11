@@ -7,7 +7,10 @@ const CELL_SIZE := 8.0
 const STEP_TIME := 0.12
 const START_LENGTH := 4
 const CAMERA_LERP_RATE := 8.0
-const CAMERA_ZOOM := Vector2(0.82, 0.82)
+const CAMERA_ZOOM := Vector2(1.45, 1.45)
+const CAMERA_ZOOM_MIN := 0.7
+const CAMERA_ZOOM_MAX := 2.2
+const CAMERA_ZOOM_STEP := 0.12
 
 const CHUNK_SIZE := 14
 const FOOD_DESPAWN_CHUNK_RADIUS := 4
@@ -56,9 +59,9 @@ const PROP_COLORS := {
 }
 
 const FOOD_TARGETS := {
-	1: 36,
-	3: 12,
-	5: 5,
+	1: 28,
+	3: 10,
+	5: 4,
 }
 
 enum GameState {

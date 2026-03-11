@@ -2,6 +2,7 @@ extends RefCounted
 class_name ProgressionSystem
 
 const GameDefsRef = preload("res://scripts/game_defs.gd")
+const ActorSystemRef = preload("res://scripts/actor_system.gd")
 
 static func reset_run(game) -> void:
 	game.game_state = GameDefsRef.GameState.TITLE
@@ -104,7 +105,7 @@ static func handle_player_food_pickup(game, cell: Vector2i, food_value: int) -> 
 		for shot_index in range(shot_count):
 			var angle := (TAU / float(shot_count)) * float(shot_index)
 			var dir := Vector2(cos(angle), sin(angle))
-			game.spawn_bullet(GameDefsRef.cell_center(cell), dir, 88.0, true, 0.7, Color(1.0, 0.5, 0.25), 1.8, 1)
+			ActorSystemRef.spawn_bullet(game, GameDefsRef.cell_center(cell), dir, 88.0, true, 0.7, Color(1.0, 0.5, 0.25), 1.8, 1)
 
 
 static func try_craft_food_cache(game) -> void:
@@ -112,7 +113,7 @@ static func try_craft_food_cache(game) -> void:
 		return
 	game.wood -= 3
 	for _i in range(5):
-		game.spawn_food(game.player_body[0] + Vector2i(game.rng.randi_range(-2, 2), game.rng.randi_range(-2, 2)), 1 if game.rng.randf() < 0.7 else 3)
+		ActorSystemRef.spawn_food(game, game.player_body[0] + Vector2i(game.rng.randi_range(-2, 2), game.rng.randi_range(-2, 2)), 1 if game.rng.randf() < 0.7 else 3)
 
 
 static func try_craft_scrap_burst(game) -> void:
@@ -123,7 +124,7 @@ static func try_craft_scrap_burst(game) -> void:
 	for shot_index in range(shot_count):
 		var angle := (TAU / float(shot_count)) * float(shot_index)
 		var dir := Vector2(cos(angle), sin(angle))
-		game.spawn_bullet(GameDefsRef.cell_center(game.player_body[0]), dir, 110.0, true, 0.8, Color(0.55, 0.9, 1.0), 2.0, 1)
+		ActorSystemRef.spawn_bullet(game, GameDefsRef.cell_center(game.player_body[0]), dir, 110.0, true, 0.8, Color(0.55, 0.9, 1.0), 2.0, 1)
 
 
 static func try_craft_dragon_bait(game) -> void:

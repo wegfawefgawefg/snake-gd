@@ -49,14 +49,14 @@ static func _spawn_fruit_stampede(game) -> void:
 	game.event_name = "Fruit Stampede"
 	game.event_timer = 3.5
 	for _i in range(8):
-		game.spawn_food(game.player_body[0] + Vector2i(game.rng.randi_range(-8, 8), game.rng.randi_range(-8, 8)), 3)
+		ActorSystemRef.spawn_food(game, game.player_body[0] + Vector2i(game.rng.randi_range(-8, 8), game.rng.randi_range(-8, 8)), 3)
 
 
 static func _spawn_rot_bloom(game) -> void:
 	game.event_name = "Rot Bloom"
 	game.event_timer = 3.5
 	for _i in range(6):
-		game.spawn_poison(game.player_body[0] + Vector2i(game.rng.randi_range(-6, 6), game.rng.randi_range(-6, 6)), 4.5)
+		ActorSystemRef.spawn_poison(game, game.player_body[0] + Vector2i(game.rng.randi_range(-6, 6), game.rng.randi_range(-6, 6)), 4.5)
 
 
 static func _spawn_clown_parade(game) -> void:
@@ -70,7 +70,7 @@ static func _spawn_ender_surge(game) -> void:
 	game.event_name = "Ender Surge"
 	game.event_timer = 3.5
 	for _i in range(5):
-		game.spawn_food(game.player_body[0] + Vector2i(game.rng.randi_range(-10, 10), game.rng.randi_range(-10, 10)), 5)
+		ActorSystemRef.spawn_food(game, game.player_body[0] + Vector2i(game.rng.randi_range(-10, 10), game.rng.randi_range(-10, 10)), 5)
 	game.boss_spawn_timer = min(game.boss_spawn_timer, 3.0)
 
 

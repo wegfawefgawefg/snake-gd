@@ -3,6 +3,8 @@ class_name EnemySystem
 
 const GameDefsRef = preload("res://scripts/game_defs.gd")
 const SnakeDataRef = preload("res://scripts/snake_data.gd")
+const ActorSystemRef = preload("res://scripts/actor_system.gd")
+const CameraSystemRef = preload("res://scripts/camera_system.gd")
 
 static func update(game, delta: float) -> void:
 	game.enemy_spawn_timer += delta
@@ -13,7 +15,7 @@ static func update(game, delta: float) -> void:
 		game.enemy_spawn_timer = 0.0
 		spawn_enemy(game)
 
-	if game.boss_spawn_timer <= 0.0 and not game.boss_exists() and game.level >= 2:
+	if game.boss_spawn_timer <= 0.0 and not ActorSystemRef.boss_exists(game) and game.level >= 2:
 		game.boss_spawn_timer = max(10.0, 20.0 - float(game.level) * 0.45)
 		spawn_boss(game)
 
@@ -31,31 +33,31 @@ static func step(game) -> void:
 		var new_head: Vector2i = enemy.body[0] + dir
 
 		if new_head == game.player_body[0]:
-			game.kill_player()
+			ActorSystemRef.kill_player(game)
 			return
 
 		if new_head in game.player_body:
-			game.cut_player_at(new_head)
-			game.kill_enemy_snake(i, enemy.body, false)
+			ActorSystemRef.cut_player_at(game, new_head)
+			ActorSystemRef.kill_enemy_snake(game, i, enemy.body, false)
 			continue
 
-		var prop = game.prop_at_cell(new_head)
+		var prop = ActorSystemRef.prop_at_cell(game, new_head)
 		if prop != null and prop.kind != "swamp_pool":
 			enemy.dir = _pick_detour(game, enemy, i)
 			new_head = enemy.body[0] + enemy.dir
 
-		var first_hit: Dictionary = game.enemy_cell_hit(new_head, i)
+		var first_hit: Dictionary = ActorSystemRef.enemy_cell_hit(game, new_head, i)
 		if first_hit["snake_index"] != -1 or new_head in enemy.body:
 			enemy.dir = _pick_detour(game, enemy, i)
 			new_head = enemy.body[0] + enemy.dir
 
-		var second_hit: Dictionary = game.enemy_cell_hit(new_head, i)
+		var second_hit: Dictionary = ActorSystemRef.enemy_cell_hit(game, new_head, i)
 		if second_hit["snake_index"] != -1 or new_head in enemy.body:
-			game.kill_enemy_snake(i, enemy.body, false)
+			ActorSystemRef.kill_enemy_snake(game, i, enemy.body, false)
 			continue
 
 		enemy.body.push_front(new_head)
-		var ate_food: int = game.consume_food_at(new_head)
+		var ate_food: int = ActorSystemRef.consume_food_at(game, new_head)
 		if ate_food == 0:
 			enemy.body.pop_back()
 
@@ -64,14 +66,14 @@ static func step(game) -> void:
 			enemy.shot_cooldown = _enemy_shot_cooldown(enemy)
 
 		if enemy.poison_body:
-			game.spawn_poison(enemy.body[enemy.body.size() - 1], 2.4)
+			ActorSystemRef.spawn_poison(game, enemy.body[enemy.body.size() - 1], 2.4)
 
 		game.enemy_snakes[i] = enemy
 
 
 static func choose_direction(game, enemy, enemy_index: int) -> Vector2i:
 	var target: Vector2i = game.player_body[0]
-	var nearest_food = game.find_nearest_food(enemy.body[0], 18)
+	var nearest_food = ActorSystemRef.find_nearest_food(game, enemy.body[0], 18)
 	if nearest_food != null and not enemy.is_boss:
 		target = nearest_food.cell
 	elif enemy.is_boss:
@@ -84,10 +86,10 @@ static func choose_direction(game, enemy, enemy_index: int) -> Vector2i:
 		if GameDefsRef.is_reverse_dir(enemy.dir, option):
 			continue
 		var cell: Vector2i = enemy.body[0] + option
-		var hit: Dictionary = game.enemy_cell_hit(cell, enemy_index)
+		var hit: Dictionary = ActorSystemRef.enemy_cell_hit(game, cell, enemy_index)
 		if hit["snake_index"] != -1 or cell in enemy.body:
 			continue
-		var prop = game.prop_at_cell(cell)
+		var prop = ActorSystemRef.prop_at_cell(game, cell)
 		if prop != null and prop.kind != "swamp_pool":
 			continue
 		var score: float = abs(cell.x - target.x) + abs(cell.y - target.y)
@@ -120,7 +122,7 @@ static func spawn_enemy(game) -> void:
 	snake.queued_dir = dir
 	snake.color = GameDefsRef.ENEMY_COLORS[game.rng.randi_range(0, GameDefsRef.ENEMY_COLORS.size() - 1)]
 	snake.split_on_cut = game.rng.randf() < 0.35
-	snake.biome = game.biome_for_cell(head)
+	snake.biome = ActorSystemRef.biome_for_cell(game, head)
 	snake.can_shoot = snake.biome == "city" or snake.biome == "carnival" or snake.biome == "end"
 	snake.poison_body = snake.biome == "swamp" and game.rng.randf() < 0.2
 	snake.head_hp = 1 + int(game.level / 8)
@@ -146,7 +148,7 @@ static func spawn_enemy(game) -> void:
 static func spawn_boss(game) -> void:
 	var head := _spawn_ring_cell(game, 18)
 	var dir := _dir_toward_player(game, head)
-	var biome: String = game.biome_for_cell(head)
+	var biome: String = ActorSystemRef.biome_for_cell(game, head)
 	var snake = SnakeDataRef.SnakeActor.new()
 	var length: int = game.rng.randi_range(12, 17)
 	for i in range(length):
@@ -187,7 +189,7 @@ static func _fire_enemy_attack(game, enemy) -> void:
 	if aim.length() <= 0.0:
 		return
 	if not enemy.is_boss:
-		game.spawn_bullet(origin, aim, 58.0, false, 1.8, enemy.color.lightened(0.15), 2.1, 1)
+		ActorSystemRef.spawn_bullet(game, origin, aim, 58.0, false, 1.8, enemy.color.lightened(0.15), 2.1, 1)
 		return
 
 	var phase := 1
@@ -199,29 +201,29 @@ static func _fire_enemy_attack(game, enemy) -> void:
 	match enemy.biome:
 		"city":
 			var side := Vector2(-aim.y, aim.x)
-			game.spawn_bullet(origin, aim, 82.0 + phase * 6.0, false, 2.0, enemy.color.lightened(0.2), 2.6, 1)
-			game.spawn_bullet(origin, (aim + side * 0.35).normalized(), 76.0 + phase * 4.0, false, 2.0, enemy.color.lightened(0.1), 2.3, 1)
-			game.spawn_bullet(origin, (aim - side * 0.35).normalized(), 76.0 + phase * 4.0, false, 2.0, enemy.color.lightened(0.1), 2.3, 1)
+			ActorSystemRef.spawn_bullet(game, origin, aim, 82.0 + phase * 6.0, false, 2.0, enemy.color.lightened(0.2), 2.6, 1)
+			ActorSystemRef.spawn_bullet(game, origin, (aim + side * 0.35).normalized(), 76.0 + phase * 4.0, false, 2.0, enemy.color.lightened(0.1), 2.3, 1)
+			ActorSystemRef.spawn_bullet(game, origin, (aim - side * 0.35).normalized(), 76.0 + phase * 4.0, false, 2.0, enemy.color.lightened(0.1), 2.3, 1)
 			if phase >= 3:
-				game.spawn_bullet(origin, (aim + side * 0.7).normalized(), 72.0, false, 2.0, enemy.color.lightened(0.25), 2.2, 1)
-				game.spawn_bullet(origin, (aim - side * 0.7).normalized(), 72.0, false, 2.0, enemy.color.lightened(0.25), 2.2, 1)
+				ActorSystemRef.spawn_bullet(game, origin, (aim + side * 0.7).normalized(), 72.0, false, 2.0, enemy.color.lightened(0.25), 2.2, 1)
+				ActorSystemRef.spawn_bullet(game, origin, (aim - side * 0.7).normalized(), 72.0, false, 2.0, enemy.color.lightened(0.25), 2.2, 1)
 		"swamp":
-			game.spawn_bullet(origin, aim, 68.0, false, 2.2, enemy.color.lightened(0.1), 2.6, 1)
-			game.spawn_poison(enemy.body[enemy.body.size() - 1], 5.0)
+			ActorSystemRef.spawn_bullet(game, origin, aim, 68.0, false, 2.2, enemy.color.lightened(0.1), 2.6, 1)
+			ActorSystemRef.spawn_poison(game, enemy.body[enemy.body.size() - 1], 5.0)
 		"carnival":
 			var ring_count := 6 + (phase - 1) * 2
 			for shot_index in range(ring_count):
 				var angle := (TAU / float(ring_count)) * float(shot_index)
-				game.spawn_bullet(origin, Vector2(cos(angle), sin(angle)), 62.0, false, 1.9, enemy.color.lightened(0.2), 2.2, 1)
+				ActorSystemRef.spawn_bullet(game, origin, Vector2(cos(angle), sin(angle)), 62.0, false, 1.9, enemy.color.lightened(0.2), 2.2, 1)
 		"end":
 			var wave_count := 8 + (phase - 1) * 2
 			for shot_index in range(wave_count):
 				var angle := (TAU / float(wave_count)) * float(shot_index)
-				game.spawn_bullet(origin, Vector2(cos(angle), sin(angle)), 74.0 + phase * 5.0, false, 2.3, Color(0.9, 0.78, 1.0), 2.5, 1)
+				ActorSystemRef.spawn_bullet(game, origin, Vector2(cos(angle), sin(angle)), 74.0 + phase * 5.0, false, 2.3, Color(0.9, 0.78, 1.0), 2.5, 1)
 			if phase >= 2:
-				game.spawn_poison(enemy.body[enemy.body.size() - 1], 4.0)
+				ActorSystemRef.spawn_poison(game, enemy.body[enemy.body.size() - 1], 4.0)
 		_:
-			game.spawn_bullet(origin, aim, 84.0, false, 2.1, enemy.color.lightened(0.2), 2.7, 1)
+			ActorSystemRef.spawn_bullet(game, origin, aim, 84.0, false, 2.1, enemy.color.lightened(0.2), 2.7, 1)
 
 
 static func _enemy_shot_cooldown(enemy) -> float:
@@ -240,7 +242,7 @@ static func _enemy_shot_cooldown(enemy) -> float:
 
 static func _spawn_ring_cell(game, extra_padding: int = 0) -> Vector2i:
 	var center: Vector2i = game.player_body[0]
-	var visible_half: Vector2i = game.visible_half_cells()
+	var visible_half: Vector2i = CameraSystemRef.visible_half_cells(game)
 	var half_x: int = visible_half.x + GameDefsRef.SPAWN_RING_PADDING + extra_padding
 	var half_y: int = visible_half.y + GameDefsRef.SPAWN_RING_PADDING + extra_padding
 	var side: int = game.rng.randi_range(0, 3)
@@ -270,10 +272,10 @@ static func _pick_detour(game, enemy, enemy_index: int) -> Vector2i:
 	]
 	for option in options:
 		var cell: Vector2i = enemy.body[0] + option
-		var hit: Dictionary = game.enemy_cell_hit(cell, enemy_index)
+		var hit: Dictionary = ActorSystemRef.enemy_cell_hit(game, cell, enemy_index)
 		if hit["snake_index"] != -1 or cell in enemy.body or cell in game.player_body:
 			continue
-		var prop = game.prop_at_cell(cell)
+		var prop = ActorSystemRef.prop_at_cell(game, cell)
 		if prop != null and prop.kind != "swamp_pool":
 			continue
 		return option

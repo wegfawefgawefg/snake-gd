@@ -3,9 +3,14 @@ class_name WorldGen
 
 const GameDefsRef = preload("res://scripts/game_defs.gd")
 const SnakeDataRef = preload("res://scripts/snake_data.gd")
+const ActorSystemRef = preload("res://scripts/actor_system.gd")
+const CameraSystemRef = preload("res://scripts/camera_system.gd")
+
+static var _biome_noise: FastNoiseLite
+static var _moisture_noise: FastNoiseLite
 
 static func ensure_chunks(game) -> void:
-	var visible_rect: Rect2 = game.visible_world_rect().grow(GameDefsRef.CHUNK_SIZE * GameDefsRef.CELL_SIZE * 1.5)
+	var visible_rect: Rect2 = CameraSystemRef.visible_world_rect(game).grow(GameDefsRef.CHUNK_SIZE * GameDefsRef.CELL_SIZE * 1.5)
 	var min_cell: Vector2i = GameDefsRef.point_to_cell(visible_rect.position)
 	var max_cell: Vector2i = GameDefsRef.point_to_cell(visible_rect.end)
 	var min_chunk: Vector2i = GameDefsRef.chunk_for_cell(min_cell)
@@ -45,26 +50,18 @@ static func biome_for_chunk(chunk_coord: Vector2i) -> String:
 
 
 static func game_biome_value(chunk_coord: Vector2i) -> float:
-	var noise := FastNoiseLite.new()
-	noise.seed = 9137
-	noise.frequency = 0.085
-	noise.fractal_octaves = 3
-	noise.fractal_gain = 0.55
-	return noise.get_noise_2d(float(chunk_coord.x), float(chunk_coord.y))
+	_ensure_noises()
+	return _biome_noise.get_noise_2d(float(chunk_coord.x), float(chunk_coord.y))
 
 
 static func game_moisture_value(chunk_coord: Vector2i) -> float:
-	var noise := FastNoiseLite.new()
-	noise.seed = 23117
-	noise.frequency = 0.12
-	noise.fractal_octaves = 2
-	noise.fractal_gain = 0.6
-	return noise.get_noise_2d(float(chunk_coord.x), float(chunk_coord.y))
+	_ensure_noises()
+	return _moisture_noise.get_noise_2d(float(chunk_coord.x), float(chunk_coord.y))
 
 
 static func spawn_ambient_food(game) -> void:
 	var player_chunk := GameDefsRef.chunk_for_cell(game.player_body[0])
-	var visible_half: Vector2i = game.visible_half_cells()
+	var visible_half: Vector2i = CameraSystemRef.visible_half_cells(game)
 	var visible_chunk_radius: int = int(ceili(float(max(visible_half.x, visible_half.y)) / float(GameDefsRef.CHUNK_SIZE))) + 1
 	var counts := {1: 0, 3: 0, 5: 0}
 	for food in game.foods:
@@ -79,7 +76,7 @@ static func spawn_ambient_food(game) -> void:
 			attempts += 1
 			var food = SnakeDataRef.FoodPickup.new()
 			food.cell = random_cell_near_player(game, spawn_radius)
-			if game.cell_occupied(food.cell):
+			if ActorSystemRef.cell_occupied(game, food.cell):
 				continue
 			food.value = value
 			food.phase = game.rng.randf() * TAU
@@ -137,7 +134,7 @@ static func _spawn_chunk_content(game, chunk) -> void:
 			var local: Vector2i = cell - origin
 			if local.x % 5 == 2 or local.y % 5 == 2:
 				continue
-		if game.cell_occupied(cell):
+		if ActorSystemRef.cell_occupied(game, cell):
 			continue
 		var prop: SnakeDataRef.WorldProp = SnakeDataRef.WorldProp.new()
 		prop.cell = cell
@@ -176,7 +173,7 @@ static func _spawn_chunk_content(game, chunk) -> void:
 			var local: Vector2i = cell - origin
 			if local.x % 5 != 2 and local.y % 5 != 2 and chunk_rng.randf() < 0.7:
 				continue
-		if game.cell_occupied(cell):
+		if ActorSystemRef.cell_occupied(game, cell):
 			continue
 		var food: SnakeDataRef.FoodPickup = SnakeDataRef.FoodPickup.new()
 		food.cell = cell
@@ -197,25 +194,48 @@ static func _spawn_chunk_content(game, chunk) -> void:
 
 
 static func _cleanup_far_food(game, player_chunk: Vector2i) -> void:
+	var keep_radius: int = _visible_chunk_radius(game, 2)
 	for i in range(game.foods.size() - 1, -1, -1):
 		var food = game.foods[i]
-		if food.chunk_coord.distance_to(player_chunk) > GameDefsRef.FOOD_DESPAWN_CHUNK_RADIUS:
+		if food.chunk_coord.distance_to(player_chunk) > keep_radius:
 			game.foods.remove_at(i)
 
 
 static func _cleanup_far_props(game, player_chunk: Vector2i) -> void:
+	var keep_radius: int = _visible_chunk_radius(game, 2)
 	for i in range(game.props.size() - 1, -1, -1):
 		var prop = game.props[i]
-		if prop.chunk_coord.distance_to(player_chunk) > GameDefsRef.FOOD_DESPAWN_CHUNK_RADIUS:
+		if prop.chunk_coord.distance_to(player_chunk) > keep_radius:
 			game.props.remove_at(i)
 
 
 static func _cleanup_far_chunks(game, player_chunk: Vector2i) -> void:
+	var keep_radius: int = _visible_chunk_radius(game, 2)
 	for key in game.chunks.keys():
 		var chunk = game.chunks[key]
-		if chunk.coord.distance_to(player_chunk) > GameDefsRef.FOOD_DESPAWN_CHUNK_RADIUS:
+		if chunk.coord.distance_to(player_chunk) > keep_radius:
 			game.chunks.erase(key)
 
 
 static func _hash2(x: int, y: int) -> int:
 	return (x * 73856093) ^ (y * 19349663)
+
+
+static func _visible_chunk_radius(game, extra: int = 0) -> int:
+	var visible_half: Vector2i = CameraSystemRef.visible_half_cells(game)
+	return int(ceili(float(max(visible_half.x, visible_half.y)) / float(GameDefsRef.CHUNK_SIZE))) + extra
+
+
+static func _ensure_noises() -> void:
+	if _biome_noise == null:
+		_biome_noise = FastNoiseLite.new()
+		_biome_noise.seed = 9137
+		_biome_noise.frequency = 0.085
+		_biome_noise.fractal_octaves = 3
+		_biome_noise.fractal_gain = 0.55
+	if _moisture_noise == null:
+		_moisture_noise = FastNoiseLite.new()
+		_moisture_noise.seed = 23117
+		_moisture_noise.frequency = 0.12
+		_moisture_noise.fractal_octaves = 2
+		_moisture_noise.fractal_gain = 0.6

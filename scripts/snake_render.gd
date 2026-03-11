@@ -2,9 +2,10 @@ extends RefCounted
 class_name SnakeRender
 
 const GameDefsRef = preload("res://scripts/game_defs.gd")
+const CameraSystemRef = preload("res://scripts/camera_system.gd")
 
 static func draw_world(game) -> void:
-	var view_rect: Rect2 = game.visible_world_rect()
+	var view_rect: Rect2 = CameraSystemRef.visible_world_rect(game)
 	_draw_chunks(game, view_rect)
 	_draw_props(game, view_rect)
 	_draw_foods(game, view_rect)
